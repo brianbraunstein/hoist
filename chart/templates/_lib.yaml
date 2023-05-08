@@ -1,0 +1,74 @@
+{{- /*
+
+*/ -}}
+
+{{- /* 
+Hoist all sails specified in the provided "Sail Spec Map".
+
+IMPORTANT: MUST NOT be called from inside of a Sail (see "rehoist" for that).
+  TODO(ux): Put better assertions in place to protect against this.
+
+Template Arguments (as a list):
+  0) The name of a "Sail Spec Map" template.  Each value of the map is a "Sail
+     Spec", which is a map with the following fields:
+        template: Name of the Sail's Resource Definition Template
+        params:   Map of params used to configure the Sail. These are combined with
+                  the Sail's Default Params Template.  The Default Params
+                  Template takes lower precedence. The merging symantics come
+                  from Helm's "merge" function.
+     Each key in the map is a Sail name, which is given to the Sail's templates
+     in the Sail Context (via the "name" field, obviously).
+  1) The current Helm Context (.)
+
+Implementation Detail (subject to change):
+The implementation just synthesizes a Hoist Context and then calls "rehoist"
+with it (so it fakes as if it's already in a Sail).
+*/ -}}
+{{- define "toyapp.hoist" -}}
+  {{- $tmplName := index . 0 | required "Name of template containing a SailMap" -}}
+  {{- $context := index . 1 | required "Helm context" -}}
+  {{- if hasKey $context "params" -}}
+    {{- print "'params' found in second argument, you seem to"
+              " be hoisting when you should be rehoisting." | fail -}}
+  {{- end -}}
+
+  {{- $bootstrapHoistContext := dict "params" (dict)
+                                     "context" $context
+                                     "name" "" -}}
+  {{- include "toyapp.rehoist" (list $tmplName $bootstrapHoistContext) -}}
+{{- end -}}
+
+{{- /* 
+Same as "hoist" but used when already running inside of a Sail.
+
+Key Differences from "hoist":
+- The name given to the Sail via the Sail Context isn't just the key in the Sail
+  Spec Map.  Instead, it prepends the parent Sail's name, joined with a "-". 
+- When this is called, the caller's "." is a Sail Context rather than a Helm
+  Context.  Visually it looks the same as when calling "hoist" though, since in
+  both cases the caller just uses ".".
+
+IMPORTANT: MUST only be called from within a Sail
+  TODO(ux): Put better assertions in place to protect against this.
+*/ -}}
+{{- define "toyapp.rehoist" -}}
+  {{- $tmplName := index . 0 | required "Name of template containing a SailMap" -}}
+  {{- $parentSail := index . 1 | required "Parent sail" -}}
+
+  {{- $sailMap := include $tmplName $parentSail | fromYaml -}}
+  {{- range $sailNameSuffix, $sailSpec := $sailMap -}}
+    {{- $sailName := print (empty $parentSail.name | ternary ("") (print $parentSail.name "-"))
+                           $sailNameSuffix -}}
+    {{- $sail := dict "parent" $parentSail
+                      "context" $parentSail.context
+                      "name" $sailName -}}
+    {{- $defaultParams :=
+            include (print $sailSpec.template ".default_params") $sail | fromYaml -}}
+    {{- $_ := set $sail "params" (merge $sailSpec.params $defaultParams) -}}
+    {{- print "\n--- #### HOISTING SAIL: name=" $sailName " ####\n" -}}
+    {{- include $sailSpec.template $sail -}}
+    {{- print "\n" -}}
+    
+  {{- end -}}
+{{- end -}}
+
