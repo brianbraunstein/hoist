@@ -1,0 +1,15 @@
+apiVersion: v1
+entries:
+  hoist:
+  - apiVersion: v2
+    appVersion: 0.0.0
+    created: "2023-05-08T16:14:59.933746118+02:00"
+    description: A Helm library for creating Helm libraries that are better encapsulated
+      and less redundant.
+    digest: 0771f22d5315b9678a38df42e0f31b7101c98ed1a32c13081a6943f4e57f81ec
+    name: hoist
+    type: library
+    urls:
+    - hoist-0.0.0.tgz
+    version: 0.0.0
+generated: "2023-05-08T16:14:59.933280822+02:00"
