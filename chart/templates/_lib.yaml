@@ -24,7 +24,7 @@ Implementation Detail (subject to change):
 The implementation just synthesizes a Hoist Context and then calls "rehoist"
 with it (so it fakes as if it's already in a Sail).
 */ -}}
-{{- define "toyapp.hoist" -}}
+{{- define "hoist.hoist" -}}
   {{- $tmplName := index . 0 | required "Name of template containing a SailMap" -}}
   {{- $context := index . 1 | required "Helm context" -}}
   {{- if hasKey $context "params" -}}
@@ -35,7 +35,7 @@ with it (so it fakes as if it's already in a Sail).
   {{- $bootstrapHoistContext := dict "params" (dict)
                                      "context" $context
                                      "name" "" -}}
-  {{- include "toyapp.rehoist" (list $tmplName $bootstrapHoistContext) -}}
+  {{- include "hoist.rehoist" (list $tmplName $bootstrapHoistContext) -}}
 {{- end -}}
 
 {{- /* 
@@ -51,7 +51,7 @@ Key Differences from "hoist":
 IMPORTANT: MUST only be called from within a Sail
   TODO(ux): Put better assertions in place to protect against this.
 */ -}}
-{{- define "toyapp.rehoist" -}}
+{{- define "hoist.rehoist" -}}
   {{- $tmplName := index . 0 | required "Name of template containing a SailMap" -}}
   {{- $parentSail := index . 1 | required "Parent sail" -}}
 
